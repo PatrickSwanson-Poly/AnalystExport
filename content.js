@@ -1,12 +1,16 @@
 (function () {
-  if (window.__smartAnalystExportLoaded) return;
-  window.__smartAnalystExportLoaded = true;
+  if (window.__polyaiExportLoaded) return;
+  window.__polyaiExportLoaded = true;
 
   const MENU_SELECTOR = '[role="menu"][aria-orientation="vertical"]';
   const RENAME_SELECTOR = '[data-test-id="chat-history-menu-rename"]';
   const TITLE_SELECTOR = '[data-test-id="smart-analyst-chat-panel-title"]';
   const MESSAGES_SELECTOR = '[data-test-id="chatMessages"]';
   const MESSAGE_SELECTOR = '[data-test-id="chat-message-text"]';
+
+  // Studio Assistant selectors
+  const GLOT_SCROLL_SELECTOR = 'main [data-testid="conversation-scroll-area"]';
+  const GLOT_TITLE_SELECTOR = 'main h2[aria-live="polite"]';
 
   function extractMessages() {
     const container = document.querySelector(MESSAGES_SELECTOR);
@@ -48,6 +52,63 @@
   function getChatTitle() {
     const el = document.querySelector(TITLE_SELECTOR);
     return el ? el.textContent.trim() : "Smart Analyst Chat";
+  }
+
+  // --- Studio Assistant extraction ---
+
+  function isStudioAssistantMenu(menu) {
+    if (menu.querySelector(RENAME_SELECTOR)) return false;
+    const items = menu.querySelectorAll('[role="menuitem"]');
+    for (const item of items) {
+      if (item.textContent.includes("Archive")) return true;
+    }
+    return false;
+  }
+
+  function getGlotTitle() {
+    const el = document.querySelector(GLOT_TITLE_SELECTOR);
+    return el ? el.textContent.trim() : "Studio Assistant Chat";
+  }
+
+  function cleanGlotHtml(html) {
+    return html.replace(/\s+node="[^"]*"/g, "");
+  }
+
+  function extractGlotMessages() {
+    const scrollArea = document.querySelector(GLOT_SCROLL_SELECTOR);
+    if (!scrollArea) return [];
+
+    const messages = [];
+    const bubbles = scrollArea.querySelectorAll('[data-test-id="chat-message-text"]');
+
+    for (const bubble of bubbles) {
+      const isUser = !!bubble.closest(".user");
+      const isAgent = !!bubble.closest(".agent");
+      if (!isUser && !isAgent) continue;
+
+      if (isUser) {
+        const span = bubble.querySelector("span");
+        const text = span ? span.textContent : bubble.textContent;
+        if (text.trim()) {
+          messages.push({ role: "user", text: text.trim(), isHtml: false });
+        }
+      } else {
+        const contentDiv = bubble.firstElementChild;
+        if (contentDiv && contentDiv.tagName === "DIV") {
+          const html = cleanGlotHtml(contentDiv.innerHTML);
+          if (html.trim()) {
+            messages.push({
+              role: "assistant",
+              text: html.trim(),
+              plainText: contentDiv.textContent.trim(),
+              isHtml: true,
+            });
+          }
+        }
+      }
+    }
+
+    return messages;
   }
 
   // --- Markdown to HTML conversion ---
@@ -422,7 +483,11 @@
 
   // --- HTML page assembly ---
 
-  function buildHtmlPage(title, messages, pdfScripts) {
+  function buildHtmlPage(title, messages, pdfScripts, exportType) {
+    const isGlot = exportType === "studio-assistant";
+    const assistantLabel = isGlot ? "Studio Assistant" : "Smart Analyst";
+    const toolbarTitle = isGlot ? "Studio Assistant Export" : "Smart Analyst Export";
+
     const now = new Date().toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -432,10 +497,11 @@
     let bodyContent = "";
 
     for (const msg of messages) {
+      const content = msg.isHtml ? msg.text : convertMarkdownToHtml(msg.text);
       if (msg.role === "user") {
-        bodyContent += `<div class="message user-message"><div class="role-label user-label">You</div><div class="message-body">${convertMarkdownToHtml(msg.text)}</div></div>`;
+        bodyContent += `<div class="message user-message"><div class="role-label user-label">You</div><div class="message-body">${content}</div></div>`;
       } else if (msg.role === "assistant") {
-        bodyContent += `<div class="message assistant-message"><div class="role-label assistant-label">Smart Analyst</div><div class="message-body">${convertMarkdownToHtml(msg.text)}</div></div>`;
+        bodyContent += `<div class="message assistant-message"><div class="role-label assistant-label">${assistantLabel}</div><div class="message-body">${content}</div></div>`;
       }
     }
 
@@ -774,7 +840,7 @@
 <div class="toolbar">
   <span class="toolbar-title">
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACAklEQVR4AZVSQWsTQRT+ZpN6aNEmogcRygZREyi4gngqZNerSBdvHkRy89CiJ+stelNPCfoDAoLe3AXx4iUG6kE9ZC+SeJBdFPHQ0mYLLZTSTt+bZKeTHkr7YNj3ZuZ979tvPoFD0Vv33RwwLwEfErbaFIgEEO0CzyvFMDHviyzprvuFqT08kwKPcEQIgcYmAV0vhgMNwM2TEm1KHRwvoi0Bj0Esrniy2fxteRX37yzjhv0JV8+GKv/w7o8J4EwBdcWA/tm2JOLs5PWLPt686qu8UCio72Cg2GLhSRmLT8saZW8XnpUbIXHwFLO53W4jCAINxGffiZ3WI495i5TW1IP3BzQdx0Gz2USr1VK5ZviyfwAg4Ytfa77MNvh/zXBdF1JKdDodvXdmegI/4tu6tsyG03Ro2zbiOEa321XUeXHNi/ONdGdsCAMkWVGZnUaSJGox7WwxaCbmzblzZn+UJ2OExPIxVxdnJoGvQK1WUwLW60N9GdDzPJXfvTeju6kvEr0V36WnYBPh1rXP+Pd3S1+oVqtI01QB8PTFpTIWloxn3EbJqpwPv5CajaGsQx0ePLykqLJ4v+OfuDKbx9uPc2PNNL1RuRAmysoxWXmHrCxPYuWUrFwaWblEnp4gb2smRwRPzppHpMej99+3xSnUSVxmoxhJfimJMGeJ8HIx6Jj39wGDo8pPY7CpggAAAABJRU5ErkJggg==" width="16" height="16" alt="" class="toolbar-logo">
-    Smart Analyst Export
+    ${toolbarTitle}
   </span>
   <div class="toolbar-actions">
     <button class="btn" id="theme-toggle-btn">
@@ -942,9 +1008,17 @@ ${pdfScripts ? "<script>" + pdfScripts + "<" + "/script>" : ""}
     return pdfScriptsCache;
   }
 
-  async function handleExportClick() {
-    const title = getChatTitle();
-    const messages = extractMessages();
+  async function handleExportClick(exportType) {
+    let title, messages;
+
+    if (exportType === "studio-assistant") {
+      title = getGlotTitle();
+      messages = extractGlotMessages();
+    } else {
+      exportType = "smart-analyst";
+      title = getChatTitle();
+      messages = extractMessages();
+    }
 
     if (messages.length === 0) {
       alert("No messages found to export.");
@@ -952,13 +1026,25 @@ ${pdfScripts ? "<script>" + pdfScripts + "<" + "/script>" : ""}
     }
 
     const pdfScripts = await loadPdfScripts();
-    const messagesJson = "window.__exportMessages = " + JSON.stringify(messages) + ";";
-    const html = buildHtmlPage(title, messages, pdfScripts + "\n" + messagesJson);
+    // For PDF, provide plain text fallback for HTML messages
+    const pdfMessages = messages.map((m) =>
+      m.isHtml ? { role: m.role, text: m.plainText || "" } : m
+    );
+    const messagesJson =
+      "window.__exportMessages = " + JSON.stringify(pdfMessages) + ";";
+    const html = buildHtmlPage(
+      title,
+      messages,
+      pdfScripts + "\n" + messagesJson,
+      exportType
+    );
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const tab = window.open(url, "_blank");
     if (!tab) {
-      alert("Pop-up blocked. Please allow pop-ups for this site and try again.");
+      alert(
+        "Pop-up blocked. Please allow pop-ups for this site and try again."
+      );
     }
   }
 
@@ -1007,6 +1093,51 @@ ${pdfScripts ? "<script>" + pdfScripts + "<" + "/script>" : ""}
     }
   }
 
+  // --- Studio Assistant menu injection ---
+
+  function injectGlotExportButton(menu) {
+    if (menu.querySelector("[data-export-btn]")) return;
+
+    const items = [...menu.querySelectorAll('[role="menuitem"]')];
+    const archiveItem = items.find((item) =>
+      item.textContent.includes("Archive")
+    );
+    if (!archiveItem || items.length === 0) return;
+
+    const templateItem = items[0];
+    const exportItem = document.createElement("div");
+    exportItem.setAttribute("role", "menuitem");
+    exportItem.setAttribute("tabindex", "-1");
+    exportItem.setAttribute("data-export-btn", "true");
+    exportItem.className = templateItem.className.replace(/text-danger/g, "").trim();
+
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "relative inline-flex size-sm1 items-center justify-center";
+    iconSpan.innerHTML = `<span class="[display:contents]"><svg fill="none" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg" style="fill: none; stroke: currentColor;" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>`;
+    exportItem.appendChild(iconSpan);
+    exportItem.appendChild(document.createTextNode("Export"));
+
+    exportItem.addEventListener("mouseenter", () =>
+      exportItem.setAttribute("data-highlighted", "")
+    );
+    exportItem.addEventListener("mouseleave", () =>
+      exportItem.removeAttribute("data-highlighted")
+    );
+    exportItem.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleExportClick("studio-assistant");
+      menu.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+
+    archiveItem.before(exportItem);
+  }
+
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
@@ -1021,6 +1152,8 @@ ${pdfScripts ? "<script>" + pdfScripts + "<" + "/script>" : ""}
         for (const menu of menus) {
           if (menu.querySelector(RENAME_SELECTOR)) {
             injectExportButton(menu);
+          } else if (isStudioAssistantMenu(menu)) {
+            injectGlotExportButton(menu);
           }
         }
       }

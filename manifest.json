@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Smart Analyst Export",
-  "version": "1.5.0",
-  "description": "Export PolyAI Smart Analyst chats to PDF or HTML",
+  "name": "Analyst & Assistant Export",
+  "version": "1.6.0",
+  "description": "Export PolyAI Smart Analyst and Studio Assistant conversations to PDF or HTML",
   "permissions": [],
   "content_scripts": [
     {

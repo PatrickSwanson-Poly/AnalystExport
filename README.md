@@ -1,16 +1,25 @@
-# <img src="icons/analystexport_48.png" alt="" width="32" /> Smart Analyst Export
+# <img src="icons/analystexport_48.png" alt="" width="32" /> Analyst & Assistant Export
 
-A Chrome extension that adds an **Export** button to PolyAI Smart Analyst chat history. Export conversations as styled HTML or downloadable PDF — with tables, charts, and PolyAI branding. Everything runs locally in your browser. No data is uploaded or shared.
+A Chrome extension that adds an **Export** button to PolyAI **Smart Analyst** and **Studio Assistant** chat history. Export conversations as styled HTML or downloadable PDF — with tables, charts, and PolyAI branding. Everything runs locally in your browser. No data is uploaded or shared.
 
 ## Features
 
 ### One-Click Export
+
+#### Smart Analyst
 Click the three-dot menu on the **active** Smart Analyst chat and select **Export**. A styled preview opens in a new tab.
 
 > The Export option only appears for the chat you're currently viewing.
 
 <p align="center">
-  <img src="support/Export_Location.png" width="50%" alt="Export button in chat menu">
+  <img src="support/Export_Location.png" width="50%" alt="Export button in Smart Analyst chat menu">
+</p>
+
+#### Studio Assistant
+Click the three-dot menu on any chat in the Studio Assistant **History** sidebar and select **Export**.
+
+<p align="center">
+  <img src="support/Export_StudioAssistant_Location.png" width="50%" alt="Export button in Studio Assistant chat menu">
 </p>
 
 ### Styled Preview
@@ -40,6 +49,13 @@ Smart Analyst chart data (stored as JSON) is rendered as SVG visualizations:
 ### Dark / Light Mode
 The preview toolbar includes a theme toggle. Light mode is optimized for printing and copy-paste into documents. The saved HTML file always exports in light mode for compatibility.
 
+## Supported Chat Types
+
+| Source | What's exported | How to trigger |
+|--------|----------------|----------------|
+| **Smart Analyst** | User prompts + assistant responses (markdown with tables/charts) | Three-dot menu on the active chat in the Smart Analyst sidebar |
+| **Studio Assistant** | User prompts + assistant responses (rendered HTML including plans, code, and rich formatting) | Three-dot menu on any chat in the Studio Assistant History sidebar |
+
 ## Privacy
 
 This extension is designed so that **no chat data ever leaves your machine**:
@@ -55,7 +71,7 @@ This extension is designed so that **no chat data ever leaves your machine**:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/PatrickSwanson-Poly/AnalystExport.git
+git clone https://github.com/PatrickSwanson-Poly/AnalystAssistantExport.git
 ```
 
 ### 2. Load the extension
@@ -66,13 +82,22 @@ Navigate to `chrome://extensions` in Google Chrome. Enable **Developer mode** (t
   <img src="support/DevMode_LoadExt.png" width="80%" alt="Chrome extensions page setup">
 </p>
 
-You should now see **Smart Analyst Export** in your extensions list.
+You should now see **Analyst & Assistant Export** in your extensions list.
 
 ### 3. Use it
 
+#### Smart Analyst
 1. Open any project's **Smart Analyst** page in Agent Studio
 2. Open the chat you want to export
 3. Click the **three-dot menu** (⋮) on that chat in the sidebar
+4. Click **Export**
+5. A new tab opens with the styled preview
+6. Click **Save PDF** or **Save HTML** from the toolbar
+
+#### Studio Assistant
+1. Open any project's **Studio Assistant** page in Agent Studio
+2. Open the conversation you want to export
+3. Click the **three-dot menu** (⋮) on that conversation in the History sidebar
 4. Click **Export**
 5. A new tab opens with the styled preview
 6. Click **Save PDF** or **Save HTML** from the toolbar
@@ -86,7 +111,7 @@ cd AnalystExport
 git pull
 ```
 
-Then click the reload icon on the Smart Analyst Export card in `chrome://extensions` and refresh any open Agent Studio tabs.
+Then click the reload icon on the Analyst & Assistant Export card in `chrome://extensions` and refresh any open Agent Studio tabs.
 
 ## File Structure
 
@@ -105,10 +130,11 @@ AnalystExport/
     analystexport_48bw.png    # Greyscale variant
     analystexport_128bw.png   # Greyscale variant
   support/
-    DevMode_LoadExt.png       # Installation guide screenshot
-    Export_Location.png       # Export button location screenshot
-    Export_Webpage_Preview.png  # Dark mode preview screenshot
-    Export_HTML_Preview.png   # Saved HTML file screenshot
+    DevMode_LoadExt.png                  # Installation guide screenshot
+    Export_Location.png                  # Smart Analyst export button screenshot
+    Export_StudioAssistant_Location.png  # Studio Assistant export button screenshot
+    Export_Webpage_Preview.png           # Dark mode preview screenshot
+    Export_HTML_Preview.png              # Saved HTML file screenshot
 ```
 
 ## Author
